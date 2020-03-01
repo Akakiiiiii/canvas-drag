@@ -1,0 +1,3 @@
+<canvas-drag imgArr="{{imgArr}}">
+</canvas-drag>
+<button class="add" type="primary" bindtap="addImg" >添加图片</button>

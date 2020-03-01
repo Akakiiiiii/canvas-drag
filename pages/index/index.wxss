@@ -1,0 +1,5 @@
+.add{
+  position: fixed;
+  bottom: 20rpx;
+  width: 100% !important;
+}
