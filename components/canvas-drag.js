@@ -1,4 +1,7 @@
 // components/canvas-drag.js
+var CloseIcon = "/image/close.png";
+
+var ScaleIcon = "/image/放大.png";
 
 var dragImg = function (img, canvas) {
   this.x = 30;
@@ -28,8 +31,47 @@ dragImg.prototype = {
       this.ctx.setStrokeStyle("red");
       this.ctx.lineDashOffset = 10;
       this.ctx.strokeRect(this.x, this.y, this.w, this.h);
+      this.ctx.drawImage(CloseIcon, this.x - 15, this.y - 15, 24, 24);
+      this.ctx.drawImage(ScaleIcon, this.x + this.w - 15, this.y + this.h - 15, 24, 24);
     }
     
+  },
+  isInWhere(x,y){
+    var selectW = this.w;
+    var selectH = this.h;
+    // 删除区域左上角的坐标和区域的高度宽度
+    // var delW = 30;
+    // var delH = 30;
+    // var delX = this.x;
+    // var delY = this.y;
+    // // 旋转后的删除区域坐标
+    // var transformDelX = this._getTransform(delX, delY, this.rotate - this._getAngle(this.centerX, this.centerY, delX, delY)).x - 15;
+    // var transformDelY = this._getTransform(delX, delY, this.rotate - this._getAngle(this.centerX, this.centerY, delX, delY)).y - 15;
+    // 变换区域左上角的坐标和区域的高度宽度
+    var scaleW = 24;
+    var scaleH = 24;
+    var scaleX = this.x + selectW-12;
+    var scaleY = this.y + selectH-12;
+    // 旋转后的变换区域坐标
+    // var transformScaleX = this._getTransform(scaleX, scaleY, this.rotate + this._getAngle(this.centerX, this.centerY, scaleX, scaleY)).x - 15;
+    // var transformScaleY = this._getTransform(scaleX, scaleY, this.rotate + this._getAngle(this.centerX, this.centerY, scaleX, scaleY)).y - 15;
+    var moveX = this.x;
+    var moveY = this.y;
+    console.log(x,scaleX)
+    if (x - scaleX >= 0 && y - scaleY >= 0 && scaleX + scaleW - x >= 0 && scaleY + scaleH - y >= 0) {
+      // 缩放区域
+      return "transform";
+    } 
+    // else if (x - transformDelX >= 0 && y - transformDelY >= 0 && transformDelX + delW - x >= 0 && transformDelY + delH - y >= 0) {
+    //   // 删除区域
+    //   return "del";
+    // } 
+    // else if (x - moveX >= 0 && y - moveY >= 0 && moveX + selectW - x >= 0 && moveY + selectH - y >= 0) {
+    //   // 移动区域
+    //   return "move";
+    // }
+    // 不在选择区域里面
+    return false;
   }
 }
 Component({
@@ -72,6 +114,14 @@ Component({
         })
         this.data.ctx.draw()
       }
+    },
+    start(e){
+      console.log(e)
+      const {x,y} = e.touches[0]
+      this.data.dragArr.forEach((item)=>{
+        const place = item.isInWhere(x,y)
+        console.log(place)
+      })
     }
   }
 })
