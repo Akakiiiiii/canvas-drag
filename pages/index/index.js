@@ -26,11 +26,9 @@ Page({
             }
             const imgArr = this1.data.imgArr
             imgArr.push(obj)
-            setTimeout(()=>{
               this1.setData({
                 imgArr
               })
-            },100)
           }
         })
       }
