@@ -1,1 +1,1 @@
-<canvas bindtouchstart="start" canvas-id="canvas" id="canvas" disableScroll="true" style="width: 100%; height: 50%;margin-top:200rpx;"></canvas>
+<canvas bindtouchstart="start" bindtouchmove="move" canvas-id="canvas" id="canvas" disableScroll="true" style="width: 100%; height: 50%;margin-top:200rpx;"></canvas>

@@ -4,17 +4,18 @@ var CloseIcon = "/image/close.png";
 var ScaleIcon = "/image/放大.png";
 
 class dragImg {
-  constructor(img,canvas){
-      this.x = 30;
-      this.y = 30;
-      this.w = img.width;
-      this.h = img.height;
-      this.url = img.url
-      this.ctx = canvas;
-      this.rotate = 0;
-      this.selected = true;
+  constructor(img, canvas) {
+    this.x = 30;
+    this.y = 30;
+    this.w = img.width;
+    this.h = img.height;
+    this.url = img.url
+    this.ctx = canvas;
+    this.rotate = 0;
+    this.selected = true;
   }
   paint() {
+    this.ctx.save();
     this.centerX = this.x + this.w / 2;
     this.centerY = this.y + this.h / 2;
     // 旋转元素
@@ -33,6 +34,7 @@ class dragImg {
       this.ctx.drawImage(CloseIcon, this.x - 15, this.y - 15, 24, 24);
       this.ctx.drawImage(ScaleIcon, this.x + this.w - 15, this.y + this.h - 15, 24, 24);
     }
+    this.ctx.restore();
   }
 
   isInWhere(x, y) {
@@ -63,7 +65,7 @@ class dragImg {
     else if (x - delX >= 0 && y - delY >= 0 && delX + delW - x >= 0 && delY + delH - y >= 0) {
       // 删除区域
       return "del";
-    } 
+    }
     else if (x - moveX >= 0 && y - moveY >= 0 && moveX + selectW - x >= 0 && moveY + selectH - y >= 0) {
       // 移动区域
       return "move";
@@ -88,49 +90,90 @@ Component({
    * 组件的初始数据
    */
   data: {
-    ctx:null,
-    dragArr:[]
+    ctx: null,
+    dragArr: []
   },
-  ready(){
-    this.data.ctx = wx.createCanvasContext("canvas",this);
+  ready() {
+    this.data.ctx = wx.createCanvasContext("canvas", this);
   },
   /**
    * 组件的方法列表
    */
   methods: {
-    draw(){
+    draw() {
       this.data.dragArr.forEach((item) => {
         item.paint()
       })
       this.data.ctx.draw()
     },
-    onArrChange(arr){
-      if(arr.length){
+    onArrChange(arr) {
+      if (arr.length) {
         const newImg = arr.slice(-1)[0]
         const item = new dragImg(newImg, this.data.ctx)
         this.data.dragArr.push(item)
         this.draw()
       }
     },
-    start(e){
+    start(e) {
+      //初始化一个数组用于存放所有被点击到的图片对象
       this.data.clickedkArr = []
-      const {x,y} = e.touches[0]
-      this.data.dragArr.forEach((item)=>{
-        const place = item.isInWhere(x,y)
+      const { x, y } = e.touches[0]
+      this.data.dragArr.forEach((item) => {
+        const place = item.isInWhere(x, y)
         item.place = place
+        //先将所有的item的selected变为flase
         item.selected = false
-        if(place){
+        if (place) {
+          //如果place不是false就push进这个数组中
           this.data.clickedkArr.push(item)
         }
       })
       const length = this.data.clickedkArr.length
-      if (length){
-        const lastImg = this.data.clickedkArr[length-1]
+      if (length) {
+        //我们知道cavans绘制的图片的层级是越来越高的，因此我们取这个数组的最后一项，保证取到的图片实例是层级最高的
+        const lastImg = this.data.clickedkArr[length - 1]
+        //将该实例的被选值设为true，下次重新绘制将绘制边框
         lastImg.selected = true
+        //保存这个选中的实例
         this.data.lastImg = lastImg
-        console.log(lastImg.place)
+        //保存这个实例的初始xy坐标，move时要用
+        this.data.initial = {
+          initialX: lastImg.x,
+          initialY: lastImg.y,
+          initialRotate:lastImg.rotate
+        }
       }
+      //重新绘制
       this.draw()
+      //保存点击的坐标，move时要用
+      this.data.startTouch = { startX : x, startY : y }
+    },
+    move(e) {
+      const { x, y } = e.touches[0]
+      const { initialX, initialY } = this.data.initial
+      const { startX, startY } = this.data.startTouch
+      const lastImg = this.data.lastImg
+      if (this.data.clickedkArr.length) {
+        if (this.data.lastImg.place === 'move') {
+          //算出移动后的xy坐标与点击时xy坐标的差（即平移量）与图片对象的初始坐标相加即可
+          lastImg.x = initialX + (x - startX)
+          lastImg.y = initialY + (y - startY)
+        }
+        if (this.data.lastImg.place === 'transform'){
+          const { centerX, centerY }= lastImg
+          const { initialRotate } = this.data.initial
+          const diffXBefore = startX - centerX;
+          const diffYBefore = startY - centerY;
+          const diffXAfter = x - centerX;
+          const diffYAfter = y - centerY;
+          console.log(initialX,)
+          const angleBefore = Math.atan2(diffYBefore, diffXBefore) / Math.PI * 180;
+          const angleAfter = Math.atan2(diffYAfter, diffXAfter) / Math.PI * 180;
+          // 旋转的角度
+          lastImg.rotate = initialRotate + angleAfter - angleBefore;
+        }
+        this.draw()
+      }
     }
   }
 })
