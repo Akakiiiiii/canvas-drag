@@ -31,8 +31,8 @@ class dragImg {
       this.ctx.setStrokeStyle("red");
       this.ctx.lineDashOffset = 10;
       this.ctx.strokeRect(this.x, this.y, this.w, this.h);
-      this.ctx.drawImage(CloseIcon, this.x - 15, this.y - 15, 24, 24);
-      this.ctx.drawImage(ScaleIcon, this.x + this.w - 15, this.y + this.h - 15, 24, 24);
+      this.ctx.drawImage(CloseIcon, this.x - 15, this.y - 12, 24, 24);
+      this.ctx.drawImage(ScaleIcon, this.x + this.w - 15, this.y + this.h - 12, 24, 24);
     }
     this.ctx.restore();
   }
@@ -51,12 +51,11 @@ class dragImg {
     let delX = this.x;
     let delY = this.y;
     let delAngle = Math.atan2(delY - this.centerY, delX - this.centerX) / Math.PI * 180 + this.rotate
-    console.log(delAngle)
     let delXY = this.getTransform(delX, delY, delAngle);
     delX = delXY.x, delY = delXY.y
-    //移动区域
-    var moveX = this.x;
-    var moveY = this.y;
+    //移动区域的坐标
+    let moveX = this.x;
+    let moveY = this.y;
     if (x - transformX >= 0 && y - transformY >= 0 && transformX + transformW - x >= 0 && transformY + transformH - y >= 0) {
       // 缩放区域
       return "transform";
@@ -73,13 +72,18 @@ class dragImg {
     return false;
   }
   getTransform(x, y, rotate) {
+    //将角度化为弧度
     var angle = Math.PI / 180 * rotate;
+    //初始坐标与中点形成的直线长度不管怎么旋转都是不会变的，用勾股定理求出然后将其作为斜边
     var r = Math.sqrt(Math.pow(x - this.centerX, 2) + Math.pow(y - this.centerY, 2));
+    //斜边乘sin值等于即可求出y坐标
     var a = Math.sin(angle) * r;
+    //斜边乘cos值等于即可求出x坐标
     var b = Math.cos(angle) * r;
+    //目前的xy坐标是相对于图片中点为原点的坐标轴，而我们的主坐标轴是canvas的坐标轴，所以要加上中点的坐标值才是标准的canvas坐标
     return {
-      x: this.centerX + b-12,
-      y: this.centerY + a-12
+      x: this.centerX + b - 12,
+      y: this.centerY + a - 12
     };
   }
 }
@@ -127,29 +131,37 @@ Component({
       //初始化一个数组用于存放所有被点击到的图片对象
       this.data.clickedkArr = []
       const { x, y } = e.touches[0]
-      this.data.dragArr.forEach((item) => {
+      this.data.dragArr.forEach((item,index) => {
         const place = item.isInWhere(x, y)
         item.place = place
+        item.index = index
         //先将所有的item的selected变为flase
         item.selected = false
         if (place) {
-          //如果place不是false就push进这个数组中
           this.data.clickedkArr.push(item)
-          console.log(place)
         }
       })
       const length = this.data.clickedkArr.length
       if (length) {
         //我们知道cavans绘制的图片的层级是越来越高的，因此我们取这个数组的最后一项，保证取到的图片实例是层级最高的
         const lastImg = this.data.clickedkArr[length - 1]
+        //如果是删除的话就移除
+        if(lastImg.place ==='del'){
+          this.data.dragArr.splice(lastImg.index,1)
+          //重新绘制
+          this.draw()
+          return
+        }
         //将该实例的被选值设为true，下次重新绘制将绘制边框
         lastImg.selected = true
         //保存这个选中的实例
         this.data.lastImg = lastImg
-        //保存这个实例的初始xy坐标，move时要用
+        //保存这个实例的初始值，以后会用上
         this.data.initial = {
           initialX: lastImg.x,
           initialY: lastImg.y,
+          initialH:lastImg.h,
+          initialW:lastImg.w,
           initialRotate:lastImg.rotate
         }
       }
@@ -171,11 +183,28 @@ Component({
         }
         if (this.data.lastImg.place === 'transform'){
           const { centerX, centerY } = lastImg
+          //旋转部分
           const { initialRotate } = this.data.initial
           const angleBefore = Math.atan2(startY - centerY, startX - centerX) / Math.PI * 180;
           const angleAfter = Math.atan2(y - centerY, x - centerX) / Math.PI * 180;
           // 旋转的角度
-          lastImg.rotate = initialRotate + angleAfter - angleBefore;
+          lastImg.rotate = initialRotate + angleAfter - angleBefore
+          //缩放部分
+          const { initialH, initialW } = this.data.initial
+          //用勾股定理算出距离
+          let lineA = Math.sqrt(Math.pow(centerX - startX, 2) + Math.pow(centerY - startY, 2));
+          let lineB = Math.sqrt(Math.pow(centerX - x, 2) + Math.pow(centerY - y, 2));
+          let w = initialW + (lineB - lineA);
+          //由于是等比缩放，所以乘一个宽高比例。
+          let h = initialH + (lineB - lineA) * (initialH / initialW);
+          //定义最小宽高
+          lastImg.w = w <= 5 ? 5 : w;
+          lastImg.h = h <= 5 ? 5 : h;
+          if (w > 5 && h > 5) {
+            // 放大 或 缩小
+            lastImg.x = initialX - (lineB - lineA) / 2;
+            lastImg.y = initialY - (lineB - lineA) / 2;
+          }
         }
         this.draw()
       }
