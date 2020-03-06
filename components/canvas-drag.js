@@ -36,29 +36,28 @@ class dragImg {
     }
     this.ctx.restore();
   }
-
   isInWhere(x, y) {
-    var selectW = this.w;
-    var selectH = this.h;
-    // 删除区域左上角的坐标和区域的高度宽度
-    var delW = 24;
-    var delH = 24;
-    var delX = this.x - 12;
-    var delY = this.y - 12;
-    // // 旋转后的删除区域坐标
-    // var transformDelX = this._getTransform(delX, delY, this.rotate - this._getAngle(this.centerX, this.centerY, delX, delY)).x - 15;
-    // var transformDelY = this._getTransform(delX, delY, this.rotate - this._getAngle(this.centerX, this.centerY, delX, delY)).y - 15;
     // 变换区域左上角的坐标和区域的高度宽度
-    var scaleW = 24;
-    var scaleH = 24;
-    var scaleX = this.x + selectW - 12;
-    var scaleY = this.y + selectH - 12;
-    // 旋转后的变换区域坐标
-    // var transformScaleX = this._getTransform(scaleX, scaleY, this.rotate + this._getAngle(this.centerX, this.centerY, scaleX, scaleY)).x - 15;
-    // var transformScaleY = this._getTransform(scaleX, scaleY, this.rotate + this._getAngle(this.centerX, this.centerY, scaleX, scaleY)).y - 15;
+    let transformW = 24;
+    let transformH = 24;
+    let transformX = this.x + this.w ;
+    let transformY = this.y + this.h ;
+    let transformAngle = Math.atan2(transformY - this.centerY, transformX - this.centerX) / Math.PI * 180 + this.rotate
+    let transformXY = this.getTransform(transformX, transformY, transformAngle);
+    transformX = transformXY.x, transformY = transformXY.y
+    // 删除区域左上角的坐标和区域的高度宽度
+    let delW = 24;
+    let delH = 24;
+    let delX = this.x;
+    let delY = this.y;
+    let delAngle = Math.atan2(delY - this.centerY, delX - this.centerX) / Math.PI * 180 + this.rotate
+    console.log(delAngle)
+    let delXY = this.getTransform(delX, delY, delAngle);
+    delX = delXY.x, delY = delXY.y
+    //移动区域
     var moveX = this.x;
     var moveY = this.y;
-    if (x - scaleX >= 0 && y - scaleY >= 0 && scaleX + scaleW - x >= 0 && scaleY + scaleH - y >= 0) {
+    if (x - transformX >= 0 && y - transformY >= 0 && transformX + transformW - x >= 0 && transformY + transformH - y >= 0) {
       // 缩放区域
       return "transform";
     }
@@ -66,12 +65,22 @@ class dragImg {
       // 删除区域
       return "del";
     }
-    else if (x - moveX >= 0 && y - moveY >= 0 && moveX + selectW - x >= 0 && moveY + selectH - y >= 0) {
+    else if (x - moveX >= 0 && y - moveY >= 0 && moveX + this.w - x >= 0 && moveY + this.h - y >= 0) {
       // 移动区域
       return "move";
     }
     // 不在选择区域里面
     return false;
+  }
+  getTransform(x, y, rotate) {
+    var angle = Math.PI / 180 * rotate;
+    var r = Math.sqrt(Math.pow(x - this.centerX, 2) + Math.pow(y - this.centerY, 2));
+    var a = Math.sin(angle) * r;
+    var b = Math.cos(angle) * r;
+    return {
+      x: this.centerX + b-12,
+      y: this.centerY + a-12
+    };
   }
 }
 Component({
@@ -126,6 +135,7 @@ Component({
         if (place) {
           //如果place不是false就push进这个数组中
           this.data.clickedkArr.push(item)
+          console.log(place)
         }
       })
       const length = this.data.clickedkArr.length
@@ -160,15 +170,10 @@ Component({
           lastImg.y = initialY + (y - startY)
         }
         if (this.data.lastImg.place === 'transform'){
-          const { centerX, centerY }= lastImg
+          const { centerX, centerY } = lastImg
           const { initialRotate } = this.data.initial
-          const diffXBefore = startX - centerX;
-          const diffYBefore = startY - centerY;
-          const diffXAfter = x - centerX;
-          const diffYAfter = y - centerY;
-          console.log(initialX,)
-          const angleBefore = Math.atan2(diffYBefore, diffXBefore) / Math.PI * 180;
-          const angleAfter = Math.atan2(diffYAfter, diffXAfter) / Math.PI * 180;
+          const angleBefore = Math.atan2(startY - centerY, startX - centerX) / Math.PI * 180;
+          const angleAfter = Math.atan2(y - centerY, x - centerX) / Math.PI * 180;
           // 旋转的角度
           lastImg.rotate = initialRotate + angleAfter - angleBefore;
         }
